@@ -14,7 +14,7 @@ The module will be using Serial 13 pins on the arduino mega for communications.
 ```c++ 
 DS3231  rtc(SDA, SCL);
 ```
-The program will grab time from the module on every loop
+The program will grab time from the module on every loop. The methodd ```updateTime``` will be called on every loop to keep track of time.
 ```c++
 void updateTime(bool print)
 {
