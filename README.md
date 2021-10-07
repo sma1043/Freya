@@ -1,5 +1,5 @@
 # Freya
-Freya is robot that aims on cleaning solar panels. This repository is mainly for the electrical and software section of the project.
+Freya is robot that aims on cleaning solar panels. This repository is mainly for the electrical and software sections of the project.
 
 ## Overview
   Overview of the project
@@ -86,3 +86,30 @@ void loop_Vibration()
 }
 ```
 ```completeStop()``` will be called when vibration is above the threshold and will trigger braking mechanism and stop the robot.
+## Power & Storage unit
+one of our goals is to make freya power free, does not need external power to run, thus it will be using solar panels and battery to power itself. The estimated power consumption of the freya will be no more than ```150W``` or less and We will be using two of 14.8v 6000mAh batteries. Regarding generating power We will have 40watts 18v Solar panel.
+### Charging caclulations
+Our givens:
+```
+- 14.8v, 12000mAh Lipo battery
+- 40 watts Solar panels
+```
+1.) Divide solar panel wattage by battery voltage to get the output current:
+```
+40W / 14.8V = 2.7A
+```
+2.) Multiply the current by the losses due to PWM & MPPT:
+```
+2.7A * 80% * 95% = 2.05A
+```
+3.) Multiply the battery capacity by 1 divided by efficiency (for Lithium 95%):
+```
+12Ah * ( 1/ 0.95) = 12.63 Ah
+```
+4.) Divide the battery capacity by the current:
+```
+12.63Ah / 2.05A = 6.0 hours
+```
+Therefore, Freya will need at least 7 hours of direct sunlight to fully recharge.
+### Power consumption
+The power consumption of freya is really hard to estimate due to not enough testing. However the main power consumption will be from the motors based on theoritical calculation and assumption freya can operate for 40-60 minutes (330 meters). Further calculation and testing needed to get the excat number.
