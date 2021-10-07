@@ -85,4 +85,4 @@ void loop_Vibration()
   }
 }
 ```
-```completeStop()``` will be called when vibration is above the threshold and will trigger braking mechanismand stop the robot.
+```completeStop()``` will be called when vibration is above the threshold and will trigger braking mechanism and stop the robot.
