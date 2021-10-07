@@ -30,7 +30,7 @@ void updateTime(bool print)
 }
 ```
 ### Bluetooth HM05
-Smartphones will be able to connect and communicate with freya using bluetooth communication. We will be using the bluetooth HM05 Module and Dabble Module. The Dabble library has an exisiting app that will able to communicate with freya.
+Smartphones will be able to connect and communicate with freya using bluetooth communication. We will be using the bluetooth HM05 Module and Dabble Library. The Dabble library has an exisiting app that will able to communicate with freya.
 We start by adding the Dabble Library.
 ```c++
 //library for bluetooth communication
