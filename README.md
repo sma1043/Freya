@@ -87,7 +87,7 @@ void loop_Vibration()
 ```
 ```completeStop()``` will be called when vibration is above the threshold and will trigger braking mechanism and stop the robot.
 ## Power & Storage unit
-one of our goals is to make freya power free, does not need external power to run, thus it will be using solar panels and battery to power itself. The estimated power consumption of the freya will be no more than ```150W``` or less and We will be using two of 14.8v 6000mAh batteries. Regarding generating power We will have 40watts 18v Solar panel.
+one of our goals is to make freya power free, does not need external power to run, thus it will be using solar panels and battery to power itself. Regarding generating power We will have 40watts 18v Solar panel and it will be stored in two 14.8, 6000mAh Lipo Batteries.
 ### Charging caclulations
 Our givens:
 ```
