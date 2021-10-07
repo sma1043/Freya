@@ -113,4 +113,4 @@ Our givens:
 ```
 Therefore, Freya will need at least 7 hours of direct sunlight to fully recharge.
 ### Power consumption
-The power consumption of freya is really hard to estimate due to not enough testing. However the main power consumption will be from the motors based on theoritical calculation and assumption freya can operate for 40-60 minutes (330 meters). Further calculation and testing needed to get the excat number.
+The power consumption of freya is really hard to estimate due to not enough testing. However the main power consumption will be from the motors based on theoritical calculation and assumption freya can operate for 40-60 minutes (330 meters). Further calculation and testing needed to get the excat number & confirm the duration.
