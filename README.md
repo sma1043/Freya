@@ -68,7 +68,7 @@ void loop_BT()
 }
 ```
 ### Vibration Sensor (SW-420)
-Wind speed in solar farms or in open areas can reach up to 25m/s (90km/h) and any innomali in the system will cause vibration. Therefore, a braking mechanism is needed to stop freya and hold it in place in case of high vibration.
+Wind speed in solar farms or in open areas can reach up to 25m/s (90km/h) and any anomalies in the system will cause vibration. Therefore, a braking mechanism is needed to stop freya and hold it in place in case of high vibration.
 We will be using SW-420 vibration module that will trigger at a certain threshold. The threshold can be adjusted manully on module using a screwdriver (testing is required)
 In terms of coding the module will send a signal of ```1``` or ```0``` if it sense above the threshold.
 ```c++
