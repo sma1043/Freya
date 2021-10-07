@@ -12,21 +12,18 @@
 #define motorB_2 25
 #define motorC_1 26
 #define motorC_2 27
-#define motorD_1 28
-#define motorD_2 29
-#define motorE_1 30
-#define motorE_2 31
 
 #define motorA_ena 2
 #define motorB_ena 3
 #define motorC_ena 4
-#define motorD_ena 5
-#define motorE_ena 6
 
 //pins for temperture sensors
 #define temp1_pin A0
 #define temp2_pin A1
 #define temp3_pin A2
+
+//pin for vibration sensor
+#define vibration_pin A3
 
 //---------------------------------- Variables -----------------------------------------
 DS3231  rtc(SDA, SCL);
@@ -36,6 +33,8 @@ unsigned long tempLastTime = micros();
 float tempDelay = 300; //the delay for checking temperture
 
 int const maxSpeed = 255;
+
+int vibrationState = 1;
 
 float temp1;
 float temp2;
@@ -77,20 +76,16 @@ void setup() {
   pinMode(motorB_2, OUTPUT);
   pinMode(motorC_1, OUTPUT);
   pinMode(motorC_2, OUTPUT);
-  pinMode(motorD_1, OUTPUT);
-  pinMode(motorD_2, OUTPUT);
-  pinMode(motorE_1, OUTPUT);
-  pinMode(motorE_2, OUTPUT);
 
   pinMode(motorA_ena, OUTPUT);
   pinMode(motorB_ena, OUTPUT);
   pinMode(motorC_ena, OUTPUT);
-  pinMode(motorD_ena, OUTPUT);
-  pinMode(motorE_ena, OUTPUT);
 
-  pinMode(temp1_pin, OUTPUT);
-  pinMode(temp2_pin, OUTPUT);
-  pinMode(temp3_pin, OUTPUT);
+  pinMode(temp1_pin, INPUT);
+  pinMode(temp2_pin, INPUT);
+  pinMode(temp3_pin, INPUT);
+
+  pinMode(vibration_pin, INPUT);
 }
 
 void loop() {
@@ -195,3 +190,20 @@ void updateTime(bool print)
   }
 }
 
+void loop_Vibration()
+{
+  vibrationState = digitalRead(vibration_pin);
+
+  if(vibrationState == 1)
+  {
+    completeStop();
+  }else
+  {
+    //ignore
+  }
+}
+
+void completeStop()
+{
+    //turn off motors and brake
+}
