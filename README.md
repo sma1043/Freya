@@ -90,7 +90,7 @@ void loop_Vibration()
 one of our goals is to make freya power free, does not need external power to run, thus it will be using solar panels and battery to power itself. For power generating We will be using 40 watts 18V solar panel and it will store the power in two 14.8V 6000mAh LIPO batteries.
 
 ### Power schematic:
-
+![](images/Power schematic.png)
 
 ### Charging caclulations
 This is the estimation of how long the solar panel can charge the batteries.
