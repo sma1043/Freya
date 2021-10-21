@@ -97,13 +97,21 @@ one of our goals is to make freya power free, does not need external power to ru
   Using the same motor models for our application will simplify our work in terms of coding, testing, and shipping, hence we are using the 3 same motors in our application. As we can see in the above table, the major power consumption will be from our motors. Although the motors are rated at 240 watts We will be using much less power and we can ignore the microntroller and others power consumption.
   
   lets calculate power consumption for each motor(Higher end)
-  ```Given: 120 watts (expected power needed) @ 12v for each motor```
+  ```
+  Given: 120 watts (expected power needed) @ 12v for each motor
+  ```
   We increase our wattage consumption to prevent undercalculations.
-  ```120watts * 1.2 = 144 watts```
+  ```
+  120watts * 1.2 = 144 watts
+  ```
   Now, we get the current needed:
-  ```120watts / 12V = 12A```
+  ```
+  120watts / 12V = 12A
+  ```
   Multipling by each motor we have:
-  ```12A * 3 = 36A```
+  ```
+  12A * 3 = 36A
+  ```
   
   Based on the calculation above assuming all motors are running at that power consumption we get `36A`. At first this seems a lot of amps in a small device, yes it is, however this not gonna happen. For instance, the brush motors might need 120 watts at the start but after 1-2 seconds the only forces that is slowing it down are air resistance and fricion which the motor has to compensate for that only. 
 
@@ -112,11 +120,17 @@ one of our goals is to make freya power free, does not need external power to ru
   Our battery choice provided by company by the name LONG is `WP18-12` with the specific of 18Ah at 12V.
   
  Discharge calculation for the battery:
- ```Given: 36A @ 12V```
+ ```
+ Given: 36A @ 12V
+ ```
  Based on the given battery we can calculate the time needed to fully discharge by:
- ```18Ah / 36 A = 0.6 hour```
+ ```
+ 18Ah / 36 A = 0.6 hour
+ ```
 Converting to minutes:
-```60 minutes * 0.6 = 36 mintues```
+```
+60 minutes * 0.6 = 36 mintues
+```
 
   Although batteries dont discharge linearly so we will take `30 minutes` of total discharge time (neglating solar panels) since our device is rated at `11 meter/minute` so it will be able to clean for `330 meters` until fully discharged.
   
