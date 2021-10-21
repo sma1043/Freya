@@ -99,17 +99,17 @@ one of our goals is to make freya power free, does not need external power to ru
   lets calculate power consumption for each motor(Higher end)
   ```
   Given: 120 watts (expected power needed) @ 12v for each motor
-  ```
+
   We increase our wattage consumption to prevent undercalculations.
-  ```
+
   120watts * 1.2 = 144 watts
-  ```
+
   Now, we get the current needed:
-  ```
+
   120watts / 12V = 12A
-  ```
+
   Multipling by each motor we have:
-  ```
+
   12A * 3 = 36A
   ```
   
@@ -121,13 +121,13 @@ one of our goals is to make freya power free, does not need external power to ru
  Discharge calculation for the battery:
  ```
  Given: 36A @ 12V
- ```
+
  Based on the given battery we can calculate the time needed to fully discharge by:
- ```
+
  18Ah / 36 A = 0.6 hour
- ```
+
 Converting to minutes:
-```
+
 60 minutes * 0.6 = 36 mintues
 ```
 
@@ -160,30 +160,5 @@ Caclulating charging time:
   
 - Divide the battery capacity by the current:
 
-  21.2Ah / 5.3A = 6.0 hours
-
-
+  21.2Ah / 5.3A = 4.0 hours
 ```
-Since solar panels are not ideal we will assume that both are running at 50%:
-```
-200w
-```
-1.) Divide solar panel wattage by battery voltage to get the output current:
-```
-100W / 12V = 2.7A
-```
-2.) Multiply the current by the losses due to PWM & MPPT:
-```
-2.7A * 80% * 95% = 2.05A
-```
-3.) Multiply the battery capacity by 1 divided by efficiency (for Lithium 95%):
-```
-12Ah * ( 1/ 0.95) = 12.63 Ah
-```
-4.) Divide the battery capacity by the current:
-```
-12.63Ah / 2.05A = 6.0 hours
-```
-Therefore, Freya will need at least 7 hours of direct sunlight to fully recharge.
-### Power consumption
-The power consumption of freya is really hard to estimate due to not enough testing. However the main power consumption will be from the motors based on theoritical calculation and assumption freya can operate for 40-60 minutes (330 meters). Further calculation and testing needed to get the excat number & confirm the duration.
