@@ -91,9 +91,37 @@ one of our goals is to make freya power free, does not need external power to ru
 
 ### Power Consumption:
   Before jumping into the power generating and storage components lets analyzie our power consumption to better understand our choices.
+  
+  ----TABLE-----
+  
+  Using the same motor models for our application will simplify our work in terms of coding, testing, and shipping, hence we are using the 3 same motors in our application. As we can see in the above table, the major power consumption will be from our motors. Although the motors are rated at 240 watts We will be using much less power and we can ignore the microntroller and others power consumption.
+  
+  lets calculate power consumption for each motor(Higher end)
+  ```Given: 120 watts (expected power needed) @ 12v for each motor```
+  We increase our wattage consumption to prevent undercalculations.
+  ```120watts * 1.2 = 144 watts```
+  Now, we get the current needed:
+  ```120watts / 12V = 12A```
+  Multipling by each motor we have:
+  ```12A * 3 = 36A```
+  
+  Based on the calculation above assuming all motors are running at that power consumption we get `36A`. At first this seems a lot of amps in a small device, yes it is, however this not gonna happen. For instance, the brush motors might need 120 watts at the start but after 1-2 seconds the only forces that is slowing it down are air resistance and fricion which the motor has to compensate for that only. 
 
-### Charging caclulations
-This is the estimation of how long the solar panel can charge the batteries.
+### Storage Unit
+  With the power consumption in mind, We can determine which battery suits our needs. First of foremost, lithium ion batteries are a great choice for moblie robots such as our application. They have high power density, low internal resistance, and lightweight. However due to our enviorments that we will be using it in and power needs the Lithitum ion batteries does not seem a suitable option for our application. For example, the robot will be running under the heat and direct sunlight which will expose the batteries under high heat. Another problem, We will need multiple of them to power the device and they are not very cheap for comparsion a double 6Ah @ 14.8 would cost around 500 AED (~130 USD) however similar specific of lead acid battery would cost 150 AED (~40 USD).
+  Our battery choice provided by company by the name LONG is `WP18-12` with the specific of 18Ah at 12V.
+  
+ Discharge calculation for the battery:
+ ```Given: 36A @ 12V```
+ Based on the given battery we can calculate the time needed to fully discharge by:
+ ```18Ah / 36 A = 0.6 hour```
+Converting to minutes:
+```60 minutes * 0.6 = 36 mintues```
+
+  Although batteries dont discharge linearly so we will take `30 minutes` of total discharge time (neglating solar panels) since our device is rated at `11 meter/minute` so it will be able to clean for `330 meters` until fully discharged.
+  
+### Power charging
+  This is the estimation of how long the solar panel can charge the batteries.
 Our givens:
 ```
 - 14.8v, 12000mAh Lipo battery
