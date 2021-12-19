@@ -470,9 +470,9 @@ void initCleaning()
   
   runCleaning();
 
-  delay(5000);
+  //delay(5000);
 
-  stopBrush();
+  //stopBrush();
 }
 
 /*
@@ -503,7 +503,16 @@ void runCleaning()
   
   startBrush();
 
-  delay(5000);
+  moveRight();
+
+  if(sensors(0) == 1)
+  {
+    stopBrush();
+
+    delay(5000);
+
+    moveLeft();
+  }
 
   //moveRight();
 }
@@ -523,7 +532,12 @@ void moveRight()
 void moveLeft()
 {
   Serial.println("Moving left...");
-  motor1.setSpeed(motor1.maxSpeed, true);  
+  motor1.setSpeed(motor1.maxSpeed, true);
+
+  if(sensor(1) == 1)
+  {
+    stopCleaning();  
+  }
 }
 
 void stopMotor()
