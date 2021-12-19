@@ -1,209 +1,670 @@
-//---------------------------------- LIBRARIES -----------------------------------------
-//library for bluetooth communication
+/*
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+// include the library code:
+#define CUSTOM_SETTINGS
+#define INCLUDE_GAMEPAD_MODULE
 #include <Dabble.h>
-//library for the ds3231 module real time clock
-#include <DS3231.h>
+#include <LiquidCrystal.h>
+#include <Wire.h>
+#include "RTClib.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-//---------------------------------- PIN LAYOUTS -----------------------------------------
-//pins for motors
-#define motorA_1 22
-#define motorA_2 23
-#define motorB_1 24
-#define motorB_2 25
-#define motorC_1 26
-#define motorC_2 27
+#define buzzer 10
 
-#define motorA_ena 2
-#define motorB_ena 3
-#define motorC_ena 4
+#define ONE_WIRE_BUS 2
 
-//pins for temperture sensors
-#define temp1_pin A0
-#define temp2_pin A1
-#define temp3_pin A2
+#define R_PWM0 2
+#define L_PWM0 3
 
-//pin for vibration sensor
-#define vibration_pin A3
+#define R_PWM1 4
+#define L_PWM1 5
 
-//---------------------------------- Variables -----------------------------------------
-DS3231  rtc(SDA, SCL);
-Time time_0;
+#define en0 6
+#define en1 7
 
-unsigned long tempLastTime = micros();
-float tempDelay = 300; //the delay for checking temperture
+#define sensor0 9
+#define sensor1 10
 
-int const maxSpeed = 255;
+#define echo_0 48
+#define echo_1 49
 
-int vibrationState = 1;
+#define trig_0 50
+#define trig_1 51
 
-float temp1;
-float temp2;
-float temp3;
-float Vo;
-float const r1 = 10000;
-float const c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
-float logR2, r2, t, tc;
+int deviceCount = 0;
+float tempC;
 
-//custom variables for bluetooth communication (not sure if i will use it)
-//#define CUSTOM_SETTINGS
-//#define INCLUDE_TERMINAL_MODULE
+int statusSenso;
 
-String Serialdata = "";
-bool dataflag = 0;
+const int sensorDistance = 15;
 
-bool limiswitch_0; //up
-bool limitswitch_1; //down
-bool limitswitch_2; //left
-bool limitswitch_3; //right
+#define DATA_SIZE 45
+char *saveptr;
+
+char data_buffer[DATA_SIZE];
+
+float v1, v2, v3;
+
+// Setup a oneWire instance to communicate with any OneWire device
+OneWire oneWire(ONE_WIRE_BUS);  
+
+// Pass oneWire reference to DallasTemperature library
+DallasTemperature sensors(&oneWire);
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = 24, en = 25, d4 = 26, d5 = 27, d6 = 28, d7 = 29;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+RTC_DS3231 rtc;
+DateTime now;
+DateTime next;
+DateTime last;
+
+int interval_day = 0;
+int interval_hour = 0;
+int interval_minute = 5;
+bool runSchedule = true;
+
+bool isRunning = false;
+
+bool printTime_ = false;
+long lastTime;
+
+long lastTime_;
+
+bool runSensors = false;
+
+bool returning = false;
+
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+class Motor
+{
+  public:
+
+    int maxSpeed = 255;
+
+    int speed = 0; //current speed
+
+    int RPWM;
+    int LPWM;
+    int en;
+
+    void enable(bool en)
+    {
+      if(en)
+      {
+        digitalWrite(en, HIGH);
+      }else{
+
+        digitalWrite(en, LOW);
+      }
+    }
+    
+    void setSpeed(int s, bool reverse){
+
+      int dspeed;
+     
+      if(s > maxSpeed){
+
+        dspeed = maxSpeed;
+      }else
+      {
+        dspeed = s;  
+      }
+
+      if(reverse)
+      {
+        analogWrite(RPWM, 0);
+        analogWrite(LPWM, dspeed);
+      }else{
+
+        analogWrite(RPWM, dspeed);
+        analogWrite(LPWM, 0);
+      }
+
+      speed = dspeed;
+    }
+
+    //returns 0 if clockwise/not moving.....or 1 if counter clockwise
+    int getDirection()
+    {
+      if(speed >= 0 ){
+        return 0;
+      }else{
+         return 1;
+      }
+    }
+
+    bool isRunning(){
+
+      if(speed = 0)
+      {
+        return false;
+      }else
+      {
+        return true;
+      }
+    }
+
+    void stop()
+    {
+      setSpeed(0, false);  
+    }
+};
+
+Motor motor0, motor1;
 
 void setup() {
-
-  Serial.begin(115200); //Communication setup for ds3231 module
-  Serial.begin(9600); //Commuincation setup for Serial terminal
-  Dabble.begin(9600); //Communication setup for Bluetooth module
-
-  delay(100);
-
-  rtc.begin();
-  //The following commands will only run once to set the actual date for the ds3231 module
-  //rtc.setDOW(WEDNESDAY);
-  //rtc.setTime(5, 30, 0);
-  //rtc.setDate(19, 9, 2021);
   
-  pinMode(motorA_1, OUTPUT);
-  pinMode(motorA_2, OUTPUT);
-  pinMode(motorB_1, OUTPUT);
-  pinMode(motorB_2, OUTPUT);
-  pinMode(motorC_1, OUTPUT);
-  pinMode(motorC_2, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  pinMode(R_PWM0, OUTPUT);
+  pinMode(L_PWM0, OUTPUT);
+ 
+  pinMode(R_PWM1, OUTPUT);
+  pinMode(L_PWM1, OUTPUT);
 
-  pinMode(motorA_ena, OUTPUT);
-  pinMode(motorB_ena, OUTPUT);
-  pinMode(motorC_ena, OUTPUT);
+  pinMode(en0, OUTPUT);
+  pinMode(en1, OUTPUT);
+  
+  //motor0 for brushes
+  motor0.RPWM = R_PWM0;
+  motor0.LPWM = L_PWM0;
+  motor0.en = en0;
+  motor0.maxSpeed = 40; //should give us 4-5 volts. it depends on the battery voltage so must be a bit higher
 
-  pinMode(temp1_pin, INPUT);
-  pinMode(temp2_pin, INPUT);
-  pinMode(temp3_pin, INPUT);
+  //motor1 for movement
+  motor1.RPWM = R_PWM1;
+  motor1.LPWM = L_PWM1;
+  motor1.en = en1;
+  motor1.maxSpeed = 0;
+  beep();
+  
+  Serial.begin(115200);
 
-  pinMode(vibration_pin, INPUT);
+  initLCD();
+
+  show("Init freya...", 0, 0, true);
+
+  delay(500);
+ 
+  show("Setting RTC...", 0, 0, true);
+  if (! rtc.begin()) {
+    show("Couldn't find RTC", 0, 0, true);
+  }
+ 
+  if (rtc.lostPower()) {
+    show("RTC POWER LOST...", 0, 0, true);
+ 
+    // Comment out below lines once you set the date & time.
+    // Following line sets the RTC to the date & time this sketch was compiled
+    //rtc.adjust(DateTime(2021, 12, 16, 5, 30, 0));
+ 
+    // Following line sets the RTC with an explicit date & time
+    // for example to set January 27 2017 at 12:56 you would call:
+    // rtc.adjust(DateTime(2017, 1, 27, 12, 56, 0));
+  }
+  delay(1000);
+  show("Done!", 0, 0, true);
+
+  delay(500);
+ 
+  show("Setting BT...!", 0, 0, true);
+
+  //Dabble.begin(9600);
+
+  //Dabble.begin("Freya");
+
+  delay(1000);
+ 
+  show("Done!", 0, 0, true);
+
+  delay(500);
+ 
+  updateLCD();
+
+  lastTime = millis();
+  lastTime_ = millis();
+
+  updateTime();
+
+  //next = now;
+
+  //printTime();
+  
+  //setInterval(0, 0, 1);
+  
+  //printNext();
+  
+  Serial.println("Starting freya...");\
+
+  digitalWrite(en0, HIGH);
+  
+  digitalWrite(en1, HIGH);
+  
+  //runCleaning();
+
+  //sensor(0);
 }
 
 void loop() {
   
-  updateTime(false);
-  
-  loop_BT();
-  loop_Temp();
-}
+  //Dabble.processInput();
+  //keyPressed();
 
-//Setting the speed of the motor
-void setSpeed(uint8_t motor, int speed){
-
-  if(speed > maxSpeed)
-  {
-    speed = maxSpeed;
-  }
-
-  analogWrite(motor, speed);
-}
-
-//setting the direction of the motor
-void setDirection(uint8_t pin1, uint8_t pin2, int dir)
-{
-  if(dir == 0){
-
-    digitalWrite(pin1, HIGH);
-    digitalWrite(pin2, LOW);
-  }else if(dir == 1){
-
-    digitalWrite(pin1, LOW);
-    digitalWrite(pin2, HIGH);
-  }else {
-   
-    digitalWrite(pin1, LOW);
-    digitalWrite(pin2, LOW);
-  }
-}
-
-//This method is being called in the loop which checks for terminal data via smartphone.
-void loop_BT()
-{
-  Dabble.processInput();
-  while (Serial.available() != 0)
-  {
-    Serialdata = String(Serialdata + char(Serial.read()));
-    dataflag = 1;
-  }
-  if (dataflag == 1)
-  {
-    Terminal.print(Serialdata);
-    Serialdata = "";
-    dataflag = 0;
-  }
-  if(Terminal.available())
-  {
-    while (Terminal.available() != 0)
-    {
-      Serial.write(Terminal.read());
-    }
-    Serial.println();
-  }
-}
-
-//updating temperture readings
-void loop_Temp()
-{
-  if(micros() - tempLastTime >= tempDelay)
-  {
-    temp1 = proccessTemp(temp1_pin);
-    temp2 = proccessTemp(temp2_pin);
-    temp3 = proccessTemp(temp3_pin);
+  //prints time in serial every 1 second without using delays
+  if(printTime_){
     
-    tempLastTime = micros();
+    if(millis() - lastTime > 1000){
+      printTime();
+      lastTime = millis();
+    }
   }
-}
 
-//This method will proccess the the value obtained from the temp pins into temperture
-float proccessTemp(uint8_t pin)
-{
-  Vo = analogRead(pin);
-  r2 = r1 * (1023.0 / (float)Vo - 1.0);
-  logR2 = log(r2);
-  t = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
+  //grabs the time from RTC & Check schedule every second
+  if(millis() - lastTime_ > 1000){
+      updateTime();
 
-  return t - 273.15;
-}
-
-//This method will get the current time from ds3231 module. bool = true --> print time on terminal (for debugging purpose)
-void updateTime(bool print)
-{
-  time_0 = rtc.getTime();
-
-  if(print)
-  {
-    Serial.print(rtc.getDOWStr());
-    Serial.print(" ");
-  
-    Serial.print(rtc.getDateStr());
-    Serial.print(" -- ");
-    Serial.println(rtc.getTimeStr()); 
+      checkSchedule();
+      
+      lastTime_ = millis();
   }
+
+  //checkSensors();
+
+  terminal();
 }
 
-void loop_Vibration()
+void keyPressed()
 {
-  vibrationState = digitalRead(vibration_pin);
-
-  if(vibrationState == 1)
+  //Serial.println("KEY PRESSED: ");
+  if (GamePad.isUpPressed())
   {
-    completeStop();
+    Serial.println("UP");
+  }
+
+  if (GamePad.isDownPressed())
+  {
+    Serial.println("DOWN");
+  }
+
+  if (GamePad.isLeftPressed())
+  {
+    Serial.println("Left");
+  }
+
+  if (GamePad.isRightPressed())
+  {
+    Serial.println("Right");
+  }
+
+  if (GamePad.isSquarePressed())
+  {
+    Serial.println("Square");
+  }
+
+  if (GamePad.isCirclePressed())
+  {
+    Serial.println("Circle");
+  }
+
+  if (GamePad.isCrossPressed())
+  {
+    Serial.println("Cross");
+  }
+
+  if (GamePad.isTrianglePressed())
+  {
+    Serial.println("Triangle");
+  }
+
+  if (GamePad.isStartPressed())
+  {
+    Serial.println("Start");
+  }
+
+  if (GamePad.isSelectPressed())
+  {
+    Serial.println("Select");
+  }  
+}
+
+void updateTime()
+{
+  now = rtc.now();
+}
+
+void printTime()
+{
+   //updateTime();
+   Serial.println("Current Time: ");
+   Serial.print(now.year(), DEC);
+   Serial.print('/');
+   Serial.print(now.month(), DEC);
+   Serial.print('/');
+   Serial.print(now.day(), DEC);
+   Serial.print(" (");
+   Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+   Serial.print(") ");
+   Serial.print(now.hour(), DEC);
+   Serial.print(':');
+   Serial.print(now.minute(), DEC);
+   Serial.print(':');
+   Serial.print(now.second(), DEC);
+   Serial.println();
+}
+
+//24 hours format
+void setInterval(int day, int hour, int minute)
+{
+  int h;
+  int m;
+ 
+  if(hour > 24)
+  {
+      interval_hour = 24;
   }else
   {
-    //ignore
+    interval_hour = hour;  
+  }
+
+  if(minute > 60)
+  {
+      interval_minute = 60;
+  }else
+  {
+    interval_minute = minute;  
+  }
+
+  interval_day = day;
+ 
+  updateTime();
+  next = (now + TimeSpan(day, hour, minute, 0));
+ 
+  Serial.println("Cleaning interval has been set!");
+  Serial.println();
+
+  printNext();
+}
+
+void printNext()
+{
+  Serial.println("Next Time: ");
+  Serial.print(next.year(), DEC);
+  Serial.print('/');
+  Serial.print(next.month(), DEC);
+  Serial.print('/');
+  Serial.print(next.day(), DEC);
+  Serial.print(" (");
+  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+  Serial.print(") ");
+  Serial.print(next.hour(), DEC);
+  Serial.print(':');
+  Serial.print(next.minute(), DEC);
+  Serial.print(':');
+  Serial.print(next.second(), DEC);
+  Serial.println();
+}
+
+void beep()
+{
+
+  tone(buzzer, 1);
+ 
+  delay(300);
+ 
+  noTone(buzzer);
+}
+
+void show(String text, int col, int row, bool clear)
+{
+  if(clear)
+  {
+    lcd.clear();  
+  }
+
+  lcd.setCursor(col, row);
+
+  lcd.print(text);
+  Serial.println(text);
+}
+
+void initLCD()
+{
+  lcd.begin(16, 2);  
+}
+
+void updateLCD()
+{
+  if(canClean())
+  {
+    show("Ready!",0 ,0 , true);
+  }
+ 
+  if(!runSchedule)
+  {
+    show("Manual Mode",0 ,1 , false);
+  }else
+  {
+    show("Clean in: ",0 ,1, false);
   }
 }
 
-void completeStop()
+void initCleaning()
 {
-    //turn off motors and brake
+  Serial.println("init cleaning...");
+  isRunning = true;
+  
+  if(!canClean())
+  {
+    return;  
+  }
+  
+  runCleaning();
+
+  delay(5000);
+
+  stopBrush();
+}
+
+/*
+ * Check:
+ * - Temperture
+ * -
+ */
+bool canClean()
+{
+  Serial.println("Checking temperture...");
+
+  return true;
+  
+}
+
+void runCleaning()
+{
+  Serial.println("run cleaning...");
+
+  isRunning = true;
+
+  beep();
+  //start brushes and then delay..
+  //start moving...
+  //detect edge...
+  //stop brushes...
+  //return back...
+  
+  startBrush();
+
+  delay(5000);
+
+  //moveRight();
+}
+
+void stopCleaning()
+{
+  stopBrush();
+  Serial.println("stop cleaning..."); 
+}
+
+void moveRight()
+{
+  Serial.println("Moving right...");
+  motor1.setSpeed(motor1.maxSpeed, false);
+}
+
+void moveLeft()
+{
+  Serial.println("Moving left...");
+  motor1.setSpeed(motor1.maxSpeed, true);  
+}
+
+void stopMotor()
+{
+  Serial.println("Stopping...");
+  motor1.setSpeed(0, true);  
+}
+
+void startBrush()
+{
+  Serial.println("Starting brush motors...");
+
+  motor0.enable(true);
+  motor0.setSpeed(motor0.maxSpeed, true);
+}
+
+void stopBrush()
+{
+  Serial.println("Stopping brush motors...");
+
+  motor0.setSpeed(0, false);
+  motor0.enable(false);
+}
+
+void checkSchedule()
+{
+  if(isRunning){
+
+    return;
+  }
+
+  if(!runSchedule)
+  {
+
+    return;
+  }
+
+  //check if its time to clean
+  if(now.day() == next.day()){
+    
+    if(now.hour() >= next.hour()){
+
+      if(now.minute() >= next.minute()){
+
+        initCleaning();
+      }
+    }
+  }
+}
+
+
+bool sensor(int s)
+{
+  int trig;
+  int echo;
+
+  if(s == 0){
+
+    trig = trig_0;
+    echo = echo_0;
+    //Serial.println("Sensor 0: ");
+  }else
+  {
+    trig = trig_1;
+    echo = echo_1;
+
+    //Serial.println("Sensor 1: ");
+  }
+
+   long duration, cm;
+   pinMode(trig, OUTPUT);
+   digitalWrite(trig, LOW);
+   delayMicroseconds(2);
+   digitalWrite(trig, HIGH);
+   delayMicroseconds(10);
+   digitalWrite(trig, LOW);
+   pinMode(echo, INPUT);
+   duration = pulseIn(echo, HIGH);
+   cm = microsecondsToCentimeters(duration);
+
+   Serial.print(cm);
+   Serial.println("cm");
+}
+
+long microsecondsToCentimeters(long microseconds) {
+   return microseconds / 29 / 2;
+}
+
+void terminal()
+{
+    if (Serial.available() > 0)
+  {
+    memset(data_buffer, 0, sizeof(data_buffer));
+    Serial.readBytes(data_buffer, DATA_SIZE);
+    String commands = strtok_r(data_buffer, ",", &saveptr);
+
+    Serial.println("command:");
+    Serial.println(commands);
+
+
+      char* errorCheck;
+      v1 = (float) strtol(strtok_r(NULL, ",", &saveptr), &errorCheck, 10);
+      v2 = (float) strtol(strtok_r(NULL, ",", &saveptr), &errorCheck, 10);
+      v3 = (float) strtol(strtok_r(NULL, ",", &saveptr), &errorCheck, 10);
+      
+    if(commands == "S")
+    {
+      Serial.print("Checking sensor: ");
+      Serial.print("ID: ");
+      Serial.println(v1);
+
+      int id = v1;
+
+      sensor(id);
+
+    }else if(commands == "M")
+    {
+      Serial.println("Setting motor: ");
+      Serial.print("ID: ");
+      Serial.print(v1);
+      Serial.print(" ,Speed: ");
+      Serial.print(v2);
+      Serial.print(" ,Reverse: ");
+      Serial.println(v3);
+
+      if(v1 == 0)
+      {
+        motor0.setSpeed(v2, v3);
+        motor0.enable(true);
+      }else
+      {
+        motor1.setSpeed(v2, v3);
+        motor1.enable(true);
+      }
+
+     // delay(2000);
+      
+      //motor0.setSpeed(0,0);
+      motor1.setSpeed(0,0);
+      motor1.enable(false);
+      //motor0.enable(false);
+    }
+  }
 }
