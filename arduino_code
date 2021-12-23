@@ -1,9 +1,7 @@
 /*
- * 
- * 
- * 
- * 
- * 
+ * V0.8
+ * added display_ method
+ * and other functionallty for display_
  */
 
 // include the library code:
@@ -26,7 +24,7 @@
 #define R_PWM1 4
 #define L_PWM1 5
 
-#define en0 6
+#define en0 10 //change this back to 6
 #define en1 7
 
 #define sensor0 9
@@ -38,12 +36,14 @@
 #define trig_0 50
 #define trig_1 51
 
+
 int deviceCount = 0;
 float tempC;
 
 int statusSenso;
 
 const int sensorDistance = 15;
+const int contrast = 128;
 
 #define DATA_SIZE 45
 char *saveptr;
@@ -60,7 +60,7 @@ DallasTemperature sensors(&oneWire);
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
-const int rs = 24, en = 25, d4 = 26, d5 = 27, d6 = 28, d7 = 29;
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 RTC_DS3231 rtc;
@@ -174,6 +174,15 @@ void setup() {
 
   pinMode(en0, OUTPUT);
   pinMode(en1, OUTPUT);
+
+  pinMode(8, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(6, OUTPUT);
+  analogWrite(6, contrast);
+
+  //temp. output
+  digitalWrite(8, HIGH);
+  digitalWrite(9, HIGH);
   
   //motor0 for brushes
   motor0.RPWM = R_PWM0;
@@ -192,17 +201,17 @@ void setup() {
 
   initLCD();
 
-  show("Init freya...", 0, 0, true);
+  display_("Init freya...");
 
-  delay(500);
+  delay(1000);
  
-  show("Setting RTC...", 0, 0, true);
+  display_("Setting RTC...");
   if (! rtc.begin()) {
-    show("Couldn't find RTC", 0, 0, true);
+    display_("Couldn't find   RTC");
   }
- 
+  
   if (rtc.lostPower()) {
-    show("RTC POWER LOST...", 0, 0, true);
+    display_("RTC POWER LOST...");
  
     // Comment out below lines once you set the date & time.
     // Following line sets the RTC to the date & time this sketch was compiled
@@ -212,12 +221,13 @@ void setup() {
     // for example to set January 27 2017 at 12:56 you would call:
     // rtc.adjust(DateTime(2017, 1, 27, 12, 56, 0));
   }
-  delay(1000);
-  show("Done!", 0, 0, true);
+  delay(2000);
+  //rtc.adjust(DateTime(2021, 12, 23, 14, 42, 0));
+  display_("Done!");
 
-  delay(500);
+  delay(1000);
  
-  show("Setting BT...!", 0, 0, true);
+  display_("Setting BT...!");
 
   //Dabble.begin(9600);
 
@@ -225,11 +235,10 @@ void setup() {
 
   delay(1000);
  
-  show("Done!", 0, 0, true);
+  display_("Done!");
 
-  delay(500);
+  delay(1000);
  
-  updateLCD();
 
   lastTime = millis();
   lastTime_ = millis();
@@ -238,14 +247,16 @@ void setup() {
 
   //next = now;
 
-  //printTime();
+  printTime();
   
-  //setInterval(0, 0, 1);
+  setInterval(0, 0, 1);
   
   //printNext();
   
-  Serial.println("Starting freya...");\
+  Serial.println("Starting freya...");
 
+
+  //SHOULD I REMOVE THIS? LAST TIME TESTED WITH THIS AN THERE WAS NO ISSUES WITH THE MOTOR
   digitalWrite(en0, HIGH);
   
   digitalWrite(en1, HIGH);
@@ -253,6 +264,8 @@ void setup() {
   //runCleaning();
 
   //sensor(0);
+
+  updateLCD();
 }
 
 void loop() {
@@ -274,6 +287,7 @@ void loop() {
       updateTime();
 
       checkSchedule();
+      updateLCD();
       
       lastTime_ = millis();
   }
@@ -416,7 +430,6 @@ void printNext()
 
 void beep()
 {
-
   tone(buzzer, 1);
  
   delay(300);
@@ -444,17 +457,19 @@ void initLCD()
 
 void updateLCD()
 {
-  if(canClean())
+  if(isRunning)
   {
-    show("Ready!",0 ,0 , true);
-  }
- 
-  if(!runSchedule)
-  {
-    show("Manual Mode",0 ,1 , false);
+    display_("Cleaning...");
   }else
   {
-    show("Clean in: ",0 ,1, false);
+    if(runSchedule)
+    {
+      String duration = durationSTR(now, next);
+      display_("Next Schedule:  " + duration);
+    }else
+    {
+      display_("Manual Mode");
+    }
   }
 }
 
@@ -485,7 +500,6 @@ bool canClean()
   Serial.println("Checking temperture...");
 
   return true;
-  
 }
 
 void runCleaning()
@@ -504,16 +518,6 @@ void runCleaning()
   startBrush();
 
   moveRight();
-
-  if(sensors(0) == 1)
-  {
-    stopBrush();
-
-    delay(5000);
-
-    moveLeft();
-  }
-
   //moveRight();
 }
 
@@ -533,11 +537,6 @@ void moveLeft()
 {
   Serial.println("Moving left...");
   motor1.setSpeed(motor1.maxSpeed, true);
-
-  if(sensor(1) == 1)
-  {
-    stopCleaning();  
-  }
 }
 
 void stopMotor()
@@ -571,7 +570,6 @@ void checkSchedule()
 
   if(!runSchedule)
   {
-
     return;
   }
 
@@ -673,12 +671,57 @@ void terminal()
         motor1.enable(true);
       }
 
-     // delay(2000);
+     //delay(2000);
       
       //motor0.setSpeed(0,0);
-      motor1.setSpeed(0,0);
-      motor1.enable(false);
+      //motor1.setSpeed(0,0);
+      //motor1.enable(false);
       //motor0.enable(false);
     }
   }
+}
+
+void display_(String text)
+{
+  lcd.clear();
+  
+  if(text.length() < 16)
+  {
+    
+    lcd.setCursor(0, 0);
+    lcd.print(text);
+    
+  }else if(text.length() < 32)
+  {
+    String upper = text.substring(0, 16);
+    String lower = text.substring(16, text.length());
+
+    lcd.setCursor(0, 0);
+    lcd.print(upper);
+
+    lcd.setCursor(0, 1);
+    lcd.print(lower);
+  }else
+  {
+    Serial.println("ERROR: Text too large to display_.");
+  }
+
+  Serial.print("display_: ");
+  Serial.println(text);
+}
+
+String durationSTR(DateTime now, DateTime next)
+{
+  String duration;
+  
+  int day_ = next.day() - now.day();
+  int hour_ = next.hour() - now.hour();
+  int minute_ = next.minute() - now.minute();
+  //int second_ = next.second() - now.second();
+
+  duration = String(day_, DEC) + " days, ";
+  duration += String(hour_, DEC) + ":";
+  duration += String(minute_, DEC);
+  //duration += String(second_, DEC);
+  return duration;
 }
